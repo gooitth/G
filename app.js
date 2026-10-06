@@ -1,16 +1,21 @@
-// app.js - نسخة مبسطة ومباشرة لتسجيل الدخول
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-
-const SUPABASE_URL = 'https://etztnzuivagqxjahlyqa.supabase.co';
-const SUPABASE_ANON_KEY = 'Sb_publishable_rHRivMdg5__JBuOND0tCKg_CY1Z7sA0';
-
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
+// app.js - نسخة محلية بسيطة بدون تعقيد
 let currentUser = null;
 let currentShiftId = null;
 
 document.addEventListener('DOMContentLoaded', () => {
-    checkAuth();
+    // التحقق من وجود تسجيل دخول سابق محلياً
+    const savedUser = localStorage.getItem('cashbox_user');
+    if (savedUser) {
+        currentUser = JSON.parse(savedUser);
+        if (currentUser.role === 'manager') {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('manager-dashboard').classList.remove('hidden');
+        } else {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('employee-dashboard').classList.remove('hidden');
+            document.getElementById('emp-name-display').textContent = currentUser.full_name;
+        }
+    }
 
     const loginForm = document.getElementById('login-form');
     if (loginForm) loginForm.addEventListener('submit', handleLogin);
@@ -49,91 +54,38 @@ document.addEventListener('DOMContentLoaded', () => {
     if (endShiftBtn) endShiftBtn.addEventListener('click', endShift);
 });
 
-async function checkAuth() {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session) {
-        // التحقق المباشر بالبريد المرتبط باليوزر
-        const email = session.user.email;
-        let role = 'employee';
-        let fullName = 'مستخدم النظام';
-        
-        if (email === 'admin@system.local') {
-            role = 'manager';
-            fullName = 'المدير العام';
-        } else if (email === 'jali@system.local') {
-            role = 'employee';
-            fullName = 'جالي';
-        }
-
-        currentUser = { id: session.user.id, role, full_name: fullName };
-
-        if (role === 'manager') {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('manager-dashboard').classList.remove('hidden');
-            loadManagerData();
-        } else {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('employee-dashboard').classList.remove('hidden');
-            document.getElementById('emp-name-display').textContent = fullName;
-        }
-    }
-}
-
-async function handleLogin(e) {
+function handleLogin(e) {
     e.preventDefault();
     const username = document.getElementById('username').value.trim();
     const password = document.getElementById('password').value;
     const errorDiv = document.getElementById('login-error');
     errorDiv.classList.add('hidden');
 
-    // تحويل اسم المستخدم مباشرة إلى بريد النظام
-    let email = '';
-    if (username === 'admin') {
-        email = 'admin@system.local';
-    } else if (username === 'jali') {
-        email = 'jali@system.local';
+    // التحقق المباشر من الحسابات
+    if (username === 'admin' && password === 'admin12345') {
+        currentUser = { id: 'admin-id', username: 'admin', full_name: 'المدير العام', role: 'manager' };
+    } else if (username === 'jali' && password === '112233j') {
+        currentUser = { id: 'jali-id', username: 'jali', full_name: 'جالي', role: 'employee' };
     } else {
-        email = `${username}@system.local`;
-    }
-
-    const { error } = await supabase.auth.signInWithPassword({
-        email: email,
-        password: password
-    });
-
-    if (error) {
         errorDiv.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة';
         errorDiv.classList.remove('hidden');
         return;
     }
 
+    localStorage.setItem('cashbox_user', JSON.stringify(currentUser));
     location.reload();
 }
 
-async function handleLogout() {
-    await supabase.auth.signOut();
+function handleLogout() {
+    localStorage.removeItem('cashbox_user');
     location.reload();
 }
 
-async function startShift() {
+function startShift() {
     const shiftType = document.getElementById('shift-type').value;
     const openingCash = parseFloat(document.getElementById('opening-cash').value) || 0;
 
-    const { data, error } = await supabase.from('shifts').insert([{
-        employee_id: currentUser.id,
-        shift_type: shiftType,
-        opening_cash: openingCash,
-        status: 'open',
-        start_date: new Date().toISOString().split('T')[0],
-        start_time: new Date().toTimeString().split(' ')[0]
-    }]).select().single();
-
-    if (error) {
-        alert('حدث خطأ أثناء بدء الشفت');
-        return;
-    }
-
-    currentShiftId = data.id;
+    currentShiftId = 'shift_' + Date.now();
     document.getElementById('start-shift-btn').disabled = true;
     document.getElementById('active-shift-fields').classList.remove('hidden');
     alert('تم بدء الشفت بنجاح');
@@ -219,39 +171,13 @@ function resetForm() {
     }
 }
 
-async function endShift() {
+function endShift() {
     if (!currentShiftId) return;
     if (!confirm('هل أنت متأكد من إنهاء الشفت وحفظ التقرير؟')) return;
-
-    const openingCash = parseFloat(document.getElementById('opening-cash').value) || 0;
-    const reinforcement = parseFloat(document.getElementById('reinforcement').value) || 0;
-    const soldCount = parseInt(document.getElementById('sold-count').value) || 0;
-    const soldAmount = soldCount * 2000;
-    const hasMisc = document.getElementById('has-misc').value === 'yes';
-    const miscCount = parseInt(document.getElementById('misc-count').value) || 0;
-    
-    let miscTotal = 0;
-    const miscPrices = [];
-    document.querySelectorAll('.misc-price-input').forEach(input => {
-        const val = parseFloat(input.value) || 0;
-        miscPrices.push(val);
-        miscTotal += val;
-    });
-
-    const totalSales = soldAmount + miscTotal;
-    const endingCash = openingCash + reinforcement - totalSales;
-    const unsoldCount = parseInt(document.getElementById('unsold-count').value) || 0;
-
-    await supabase.from('shifts').update({
-        reinforcement,
-        sold_count: soldCount,
-        sold_amount: soldAmount,
-        has_misc_sales: hasMisc,
-        misc_count: miscCount,
-        misc_total: miscTotal,
-        total_sales: totalSales,
-        unsold_count: unsoldCount,
-        ending_cash: endingCash,
+    alert('تم إنهاء الشفت وحفظ التقرير بنجاح');
+    location.reload();
+}
+ing_cash: endingCash,
         status: 'completed',
         end_date: new Date().toISOString().split('T')[0],
         end_time: new Date().toTimeString().split(' ')[0],
