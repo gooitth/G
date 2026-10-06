@@ -3,135 +3,275 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام مطابقة الصناديق والمعاملات</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        body { font-family: 'Cairo', sans-serif; background-color: #f8fafc; }
-    </style>
+    <title>نظام الكاشير والشفتات</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
-<body class="text-gray-800 min-h-screen flex flex-col">
+<body class="bg-gray-100 font-sans min-h-screen flex items-center justify-center p-4">
 
     <!-- شاشة تسجيل الدخول -->
-    <div id="login-screen" class="flex items-center justify-center flex-grow p-4">
-        <div class="bg-white p-8 rounded-2xl shadow-xl w-full max-w-md border border-gray-100">
-            <div class="text-center mb-6">
-                <h1 class="text-2xl font-bold text-blue-600">تسجيل الدخول</h1>
-                <p class="text-sm text-gray-500 mt-1">نظام مطابقة الصناديق والمعاملات</p>
-            </div>
-            <form id="login-form" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">اسم المستخدم</label>
-                    <input type="text" id="username" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">كلمة المرور</label>
-                    <input type="password" id="password" required class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
-                <button type="submit" class="w-full bg-blue-600 text-white py-2 rounded-lg font-medium hover:bg-blue-700 transition">دخول</button>
-            </form>
-            <div id="login-error" class="mt-4 text-red-500 text-sm text-center hidden"></div>
-        </div>
-    </div>
-
-    <!-- لوحة الموظف -->
-    <div id="employee-dashboard" class="hidden flex-grow p-4 md:p-8 max-w-4xl mx-auto w-full">
-        <div class="bg-white rounded-2xl shadow-md p-6 mb-6 flex justify-between items-center">
+    <div id="login-screen" class="bg-white p-6 rounded-2xl shadow-xl w-full max-w-sm">
+        <h2 class="text-xl font-bold text-center text-gray-800 mb-6">تسجيل الدخول للنظام</h2>
+        <form id="login-form" class="space-y-4">
             <div>
-                <h2 class="text-xl font-bold text-gray-800">مرحباً، <span id="emp-name-display"></span></h2>
-                <p class="text-xs text-gray-500">شفت عمل جديد</p>
+                <label class="block text-sm font-medium text-gray-700 mb-1">اسم المستخدم</label>
+                <input type="text" id="username" required class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
             </div>
-            <button id="logout-btn" class="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition">تسجيل خروج</button>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">كلمة المرور</label>
+                <input type="password" id="password" required class="w-full px-4 py-2 border rounded-xl focus:ring-2 focus:ring-blue-500 outline-none">
+            </div>
+            <div id="login-error" class="text-red-500 text-xs hidden text-center">اسم المستخدم أو كلمة المرور غير صحيحة</div>
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-xl font-semibold transition">تسجيل الدخول</button>
+        </form>
+    </div>
+
+    <!-- لوحة تحكم المدير -->
+    <div id="manager-dashboard" class="hidden bg-white p-6 rounded-2xl shadow-xl w-full max-w-lg space-y-4">
+        <div class="flex justify-between items-center border-b pb-3">
+            <h2 class="font-bold text-gray-800">لوحة تحكم المدير العام</h2>
+            <button id="manager-logout-btn" class="text-red-500 text-sm hover:underline">تسجيل الخروج</button>
         </div>
-
-        <div class="bg-white rounded-2xl shadow-md p-6">
-            <h3 class="text-lg font-semibold mb-4 border-b pb-2">بيانات بداية الشفت</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">نوع الشفت</label>
-                    <select id="shift-type" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                        <option value="صباحي">صباحي</option>
-                        <option value="مسائي">مسائي</option>
-                        <option value="ليلي">ليلي</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">النقد المستلم بداية الشفت</label>
-                    <input type="number" id="opening-cash" min="0" value="0" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500">
-                </div>
+        <div class="p-4 bg-gray-50 rounded-xl space-y-3">
+            <h3 class="font-semibold text-sm text-gray-700">إدارة وإنشاء حسابات الموظفين</h3>
+            <div class="space-y-2">
+                <input type="text" id="new-emp-user" placeholder="اسم المستخدم للموظف" class="w-full p-2 border rounded-lg text-sm bg-white">
+                <input type="text" id="new-emp-name" placeholder="الاسم الكامل" class="w-full p-2 border rounded-lg text-sm bg-white">
+                <input type="password" id="new-emp-pass" placeholder="كلمة المرور" class="w-full p-2 border rounded-lg text-sm bg-white">
+                <button id="create-emp-btn" class="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold">إضافة موظف جديد</button>
             </div>
-            <button id="start-shift-btn" class="bg-green-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-green-700 transition">بدء الشفت وحفظ</button>
-
-            <!-- الحقول التي تظهر بعد بدء الشفت -->
-            <div id="active-shift-fields" class="hidden mt-8 pt-6 border-t space-y-6">
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">النقد المعزز</label>
-                    <input type="number" id="reinforcement" min="0" value="0" class="w-full px-4 py-2 border rounded-lg">
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">عدد المعاملات المباعة (سعر المعاملة 2000 دينار)</label>
-                    <input type="number" id="sold-count" min="0" value="0" class="w-full px-4 py-2 border rounded-lg">
-                    <p class="text-sm text-gray-500 mt-1">مبلغ المعاملات المباعة: <span id="sold-amount-display" class="font-bold text-blue-600">0</span> دينار</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">هل يوجد مباع متفرق؟</label>
-                    <select id="has-misc" class="w-full px-4 py-2 border rounded-lg">
-                        <option value="no">لا</option>
-                        <option value="yes">نعم</option>
-                    </select>
-                </div>
-
-                <div id="misc-container" class="hidden space-y-3">
-                    <label class="block text-sm font-medium text-gray-700">عدد المعاملات المباعة المتفرقة</label>
-                    <input type="number" id="misc-count" min="0" value="0" class="w-full px-4 py-2 border rounded-lg">
-                    <div id="misc-inputs-list" class="space-y-2"></div>
-                    <p class="text-sm text-gray-500">إجمالي المباع المتفرق: <span id="misc-total-display" class="font-bold text-blue-600">0</span> دينار</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">إجمالي المبيعات</label>
-                    <p class="text-lg font-bold text-indigo-600"><span id="total-sales-display">0</span> دينار</p>
-                </div>
-
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">عدد المعاملات غير المباعة</label>
-                    <input type="number" id="unsold-count" min="0" value="0" class="w-full px-4 py-2 border rounded-lg">
-                    <div id="unsold-records-list" class="space-y-3 mt-3"></div>
-                </div>
-
-                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100">
-                    <h4 class="text-md font-semibold text-blue-800">نقد الصندوق نهاية الشفت</h4>
-                    <p class="text-2xl font-extrabold text-blue-900 mt-1"><span id="ending-cash-display">0</span> دينار</p>
-                </div>
-
-                <div class="flex space-x-4 space-x-reverse pt-4">
-                    <button id="end-shift-btn" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition">إنهاء الشفت وحفظ التقرير</button>
-                    <button id="reset-form-btn" class="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg font-medium hover:bg-gray-300 transition">تفريغ</button>
-                </div>
+        </div>
+        <div class="space-y-2">
+            <h3 class="font-semibold text-sm text-gray-700">تقارير الشفتات المحفوظة أونلاين</h3>
+            <div id="manager-reports-list" class="space-y-2 max-h-60 overflow-y-auto">
+                <p class="text-sm text-gray-500">جاري تحميل التقارير...</p>
             </div>
         </div>
     </div>
 
-    <!-- لوحة المدير -->
-    <div id="manager-dashboard" class="hidden flex-grow p-4 md:p-8 max-w-7xl mx-auto w-full">
-        <div class="bg-white rounded-2xl shadow-md p-6 mb-6 flex justify-between items-center">
-            <h2 class="text-2xl font-bold text-gray-800">لوحة تحكم المدير</h2>
-            <button id="manager-logout-btn" class="bg-red-50 text-red-600 px-4 py-2 rounded-lg text-sm font-medium hover:bg-red-100 transition">تسجيل خروج</button>
+    <!-- لوحة تحكم الموظف / الشفت -->
+    <div id="employee-dashboard" class="hidden bg-white p-6 rounded-2xl shadow-xl w-full max-w-md space-y-4">
+        <div class="flex justify-between items-center border-b pb-3">
+            <h2 class="font-bold text-gray-800">مرحباً، <span id="emp-name-display"></span></h2>
+            <button id="logout-btn" class="text-red-500 text-sm hover:underline">تسجيل الخروج</button>
         </div>
-        <div class="bg-white rounded-2xl shadow-md p-6">
-            <h3 class="text-lg font-semibold mb-4">تقارير الشفتات</h3>
-            <div id="manager-reports-list" class="overflow-x-auto">
-                <p class="text-gray-500">جاري تحميل التقارير...</p>
+
+        <div id="shift-setup-section" class="space-y-3">
+            <div>
+                <label class="block text-xs text-gray-600 mb-1">النقدية الافتتاحية (Opening Cash)</label>
+                <input type="number" id="opening-cash" value="0" class="w-full p-2 border rounded-lg text-sm">
             </div>
+            <div>
+                <label class="block text-xs text-gray-600 mb-1">نوع الشفت</label>
+                <select id="shift-type" class="w-full p-2 border rounded-lg text-sm">
+                    <option value="صباحي">صباحي</option>
+                    <option value="مسائي">مسائي</option>
+                </select>
+            </div>
+            <button id="start-shift-btn" class="w-full bg-green-600 text-white py-2 rounded-xl text-sm font-semibold">حفظ وبدء الشفت</button>
+        </div>
+
+        <div id="active-shift-fields" class="hidden space-y-3 pt-3 border-t">
+            <div class="p-2 bg-blue-50 text-blue-800 text-xs rounded-lg flex justify-between">
+                <span>الشفت الحالي: <strong id="current-shift-type-display"></strong></span>
+                <span>النقد الابتدائي: <strong id="current-opening-display"></strong></span>
+            </div>
+            <div>
+                <label class="block text-xs text-gray-600 mb-1">مبلغ التعزيز (Reinforcement)</label>
+                <input type="number" id="reinforcement" value="0" class="w-full p-2 border rounded-lg text-sm">
+            </div>
+            <div>
+                <label class="block text-xs text-gray-600 mb-1">عدد القطع المباعة (القطعة بـ 2000)</label>
+                <input type="number" id="sold-count" value="0" class="w-full p-2 border rounded-lg text-sm">
+                <p class="text-xs text-blue-600 mt-1">المبلغ الإجمالي للمبيعات: <span id="sold-amount-display">0</span> د.ع</p>
+            </div>
+
+            <div class="p-3 bg-blue-50 rounded-lg text-xs space-y-1">
+                <p>إجمالي المبيعات الكلي: <span id="total-sales-display" class="font-bold">0</span> د.ع</p>
+                <p>النقدية الختامية المتوقعة (Ending Cash): <span id="ending-cash-display" class="font-bold text-red-600">0</span> د.ع</p>
+            </div>
+
+            <button id="end-shift-btn" class="w-full bg-red-600 text-white py-2 rounded-xl text-sm font-semibold">إنهاء الشفت وحفظ التقرير أونلاين</button>
         </div>
     </div>
 
-    <footer class="text-center py-4 text-xs text-gray-400">
-        صنع بواسطة غيث
-    </footer>
+    <script>
+        const SUPABASE_URL = 'https://etztnzuivagqxjahlyqa.supabase.co';
+        const SUPABASE_ANON_KEY = 'Sb_publishable_rHRivMdg5__JBuOND0tCKg_CY1Z7sA0';
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    <script type="module" src="app.js"></script>
+        let currentUser = null;
+        let activeOpeningCash = 0;
+        let activeShiftType = '';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedUser = localStorage.getItem('cashbox_user');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showDashboard();
+            }
+
+            document.getElementById('login-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const u = document.getElementById('username').value.trim();
+                const p = document.getElementById('password').value;
+                const err = document.getElementById('login-error');
+                err.classList.add('hidden');
+
+                if (u === 'admin' && p === 'admin12345') {
+                    currentUser = { username: 'admin', full_name: 'المدير العام', role: 'manager' };
+                    localStorage.setItem('cashbox_user', JSON.stringify(currentUser));
+                    showDashboard();
+                    return;
+                }
+
+                const { data, error } = await supabase
+                    .from('employees')
+                    .select('*')
+                    .eq('username', u)
+                    .eq('password', p)
+                    .single();
+
+                if (error || !data) {
+                    err.classList.remove('hidden');
+                    return;
+                }
+
+                currentUser = { username: data.username, full_name: data.full_name, role: 'employee' };
+                localStorage.setItem('cashbox_user', JSON.stringify(currentUser));
+                showDashboard();
+            });
+
+            document.querySelectorAll('#logout-btn, #manager-logout-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    localStorage.removeItem('cashbox_user');
+                    location.reload();
+                });
+            });
+
+            const createEmpBtn = document.getElementById('create-emp-btn');
+            if(createEmpBtn) {
+                createEmpBtn.addEventListener('click', async () => {
+                    const username = document.getElementById('new-emp-user').value.trim();
+                    const fullName = document.getElementById('new-emp-name').value.trim();
+                    const password = document.getElementById('new-emp-pass').value;
+
+                    if(!username || !fullName || !password) {
+                        alert('يرجى ملء جميع حقول الموظف');
+                        return;
+                    }
+
+                    const { error } = await supabase.from('employees').insert([{ username, full_name: fullName, password }]);
+                    if (error) {
+                        alert('خطأ: اسم المستخدم موجود مسبقاً أو حدثت مشكلة بالاتصال');
+                        return;
+                    }
+
+                    alert('تم إنشاء حساب الموظف بنجاح أونلاين');
+                    document.getElementById('new-emp-user').value = '';
+                    document.getElementById('new-emp-name').value = '';
+                    document.getElementById('new-emp-pass').value = '';
+                });
+            }
+
+            document.getElementById('start-shift-btn').addEventListener('click', () => {
+                activeOpeningCash = parseFloat(document.getElementById('opening-cash').value) || 0;
+                activeShiftType = document.getElementById('shift-type').value;
+
+                document.getElementById('shift-setup-section').classList.add('hidden');
+                document.getElementById('active-shift-fields').classList.remove('hidden');
+                
+                document.getElementById('current-shift-type-display').textContent = activeShiftType;
+                document.getElementById('current-opening-display').textContent = activeOpeningCash.toLocaleString() + ' د.ع';
+                
+                calculateTotals();
+                alert('تم حفظ الشفت وبدء العمليات بنجاح (لا يمكن التراجع)');
+            });
+
+            document.getElementById('sold-count').addEventListener('input', calculateTotals);
+            document.getElementById('reinforcement').addEventListener('input', calculateTotals);
+
+            document.getElementById('end-shift-btn').addEventListener('click', async () => {
+                if (!confirm('هل أنت متأكد من إنهاء الشفت وحفظ التقرير في القاعدة؟')) return;
+
+                const reinforcement = parseFloat(document.getElementById('reinforcement').value) || 0;
+                const soldCount = parseInt(document.getElementById('sold-count').value) || 0;
+                const soldAmount = soldCount * 2000;
+                const totalSales = soldAmount;
+                const endingCash = activeOpeningCash + reinforcement + totalSales;
+
+                const { error } = await supabase.from('shifts').insert([{
+                    employee_name: currentUser.full_name,
+                    shift_type: activeShiftType,
+                    opening_cash: activeOpeningCash,
+                    reinforcement: reinforcement,
+                    sold_count: soldCount,
+                    sold_amount: soldAmount,
+                    total_sales: totalSales,
+                    ending_cash: endingCash,
+                    status: 'completed'
+                }]);
+
+                if (error) {
+                    alert('حدث خطأ أثناء حفظ التقرير أونلاين');
+                    return;
+                }
+
+                alert('تم حفظ الشفت والتقرير بنجاح في قاعدة البيانات!');
+                location.reload();
+            });
+        });
+
+        async function showDashboard() {
+            document.getElementById('login-screen').classList.add('hidden');
+            if (currentUser.role === 'manager') {
+                document.getElementById('manager-dashboard').classList.remove('hidden');
+                loadManagerReports();
+            } else {
+                document.getElementById('employee-dashboard').classList.remove('hidden');
+                document.getElementById('emp-name-display').textContent = currentUser.full_name;
+            }
+        }
+
+        function calculateTotals() {
+            const ref = parseFloat(document.getElementById('reinforcement').value) || 0;
+            const soldCount = parseInt(document.getElementById('sold-count').value) || 0;
+            const soldAmt = soldCount * 2000;
+            document.getElementById('sold-amount-display').textContent = soldAmt.toLocaleString();
+
+            const totalSales = soldAmt;
+            document.getElementById('total-sales-display').textContent = totalSales.toLocaleString();
+
+            const ending = activeOpeningCash + ref + totalSales;
+            document.getElementById('ending-cash-display').textContent = ending.toLocaleString();
+        }
+
+        async function loadManagerReports() {
+            const listDiv = document.getElementById('manager-reports-list');
+            const { data: shifts, error } = await supabase.from('shifts').select('*').order('created_at', { ascending: false });
+
+            if (error || !shifts || shifts.length === 0) {
+                listDiv.innerHTML = '<p class="text-sm text-gray-500">لا توجد تقارير شفتات مسجلة حتى الآن.</p>';
+                return;
+            }
+
+            let html = '';
+            shifts.forEach(s => {
+                html += `
+                    <div class="p-3 border rounded-xl bg-gray-50 text-xs space-y-1">
+                        <div class="flex justify-between font-bold text-gray-800">
+                            <span>الموظف: ${s.employee_name} (${s.shift_type})</span>
+                            <span class="text-blue-600">${s.ending_cash.toLocaleString()} د.ع</span>
+                        </div>
+                        <div class="text-gray-500 flex justify-between">
+                            <span>المبيعات: ${s.total_sales.toLocaleString()}</span>
+                            <span>التاريخ: ${new Date(s.created_at).toLocaleDateString('ar-IQ')}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            listDiv.innerHTML = html;
+        }
+    </script>
 </body>
 </html>
