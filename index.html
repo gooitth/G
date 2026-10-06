@@ -30,7 +30,7 @@
     <div id="manager-dashboard" class="hidden bg-white p-6 rounded-2xl shadow-xl w-full max-w-lg space-y-4">
         <div class="flex justify-between items-center border-b pb-3">
             <h2 class="font-bold text-gray-800">لوحة تحكم المدير العام</h2>
-            <button id="manager-logout-btn" class="text-red-500 text-sm hover:underline">تسجيل الخروج</button>
+            <button type="button" class="logout-btn text-red-500 text-sm hover:underline cursor-pointer">تسجيل الخروج</button>
         </div>
         <div class="p-4 bg-gray-50 rounded-xl space-y-3">
             <h3 class="font-semibold text-sm text-gray-700">إدارة وإنشاء حسابات الموظفين</h3>
@@ -38,7 +38,7 @@
                 <input type="text" id="new-emp-user" placeholder="اسم المستخدم للموظف" class="w-full p-2 border rounded-lg text-sm bg-white">
                 <input type="text" id="new-emp-name" placeholder="الاسم الكامل" class="w-full p-2 border rounded-lg text-sm bg-white">
                 <input type="password" id="new-emp-pass" placeholder="كلمة المرور" class="w-full p-2 border rounded-lg text-sm bg-white">
-                <button id="create-emp-btn" class="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold">إضافة موظف جديد</button>
+                <button type="button" id="create-emp-btn" class="w-full bg-blue-600 text-white py-2 rounded-lg text-sm font-semibold cursor-pointer">إضافة موظف جديد</button>
             </div>
         </div>
         <div class="space-y-2">
@@ -53,7 +53,7 @@
     <div id="employee-dashboard" class="hidden bg-white p-6 rounded-2xl shadow-xl w-full max-w-md space-y-4">
         <div class="flex justify-between items-center border-b pb-3">
             <h2 class="font-bold text-gray-800">مرحباً، <span id="emp-name-display"></span></h2>
-            <button id="logout-btn" class="text-red-500 text-sm hover:underline">تسجيل الخروج</button>
+            <button type="button" class="logout-btn text-red-500 text-sm hover:underline cursor-pointer">تسجيل الخروج</button>
         </div>
 
         <div id="shift-setup-section" class="space-y-3">
@@ -68,7 +68,7 @@
                     <option value="مسائي">مسائي</option>
                 </select>
             </div>
-            <button id="start-shift-btn" class="w-full bg-green-600 text-white py-2 rounded-xl text-sm font-semibold">حفظ وبدء الشفت</button>
+            <button type="button" id="start-shift-btn" class="w-full bg-green-600 text-white py-2 rounded-xl text-sm font-semibold cursor-pointer">حفظ وبدء الشفت</button>
         </div>
 
         <div id="active-shift-fields" class="hidden space-y-3 pt-3 border-t">
@@ -91,7 +91,7 @@
                 <p>النقدية الختامية المتوقعة (Ending Cash): <span id="ending-cash-display" class="font-bold text-red-600">0</span> د.ع</p>
             </div>
 
-            <button id="end-shift-btn" class="w-full bg-red-600 text-white py-2 rounded-xl text-sm font-semibold">إنهاء الشفت وحفظ التقرير أونلاين</button>
+            <button type="button" id="end-shift-btn" class="w-full bg-red-600 text-white py-2 rounded-xl text-sm font-semibold cursor-pointer">إنهاء الشفت وحفظ التقرير أونلاين</button>
         </div>
     </div>
 
@@ -107,8 +107,12 @@
         document.addEventListener('DOMContentLoaded', () => {
             const savedUser = localStorage.getItem('cashbox_user');
             if (savedUser) {
-                currentUser = JSON.parse(savedUser);
-                showDashboard();
+                try {
+                    currentUser = JSON.parse(savedUser);
+                    showDashboard();
+                } catch (e) {
+                    localStorage.removeItem('cashbox_user');
+                }
             }
 
             document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -142,9 +146,10 @@
                 showDashboard();
             });
 
-            document.querySelectorAll('#logout-btn, #manager-logout-btn').forEach(btn => {
+            document.querySelectorAll('.logout-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
                     localStorage.removeItem('cashbox_user');
+                    currentUser = null;
                     location.reload();
                 });
             });
@@ -185,7 +190,6 @@
                 document.getElementById('current-opening-display').textContent = activeOpeningCash.toLocaleString() + ' د.ع';
                 
                 calculateTotals();
-                alert('تم حفظ الشفت وبدء العمليات بنجاح (لا يمكن التراجع)');
             });
 
             document.getElementById('sold-count').addEventListener('input', calculateTotals);
@@ -218,16 +222,17 @@
                 }
 
                 alert('تم حفظ الشفت والتقرير بنجاح في قاعدة البيانات!');
+                localStorage.removeItem('cashbox_user');
                 location.reload();
             });
         });
 
-        async function showDashboard() {
+        function showDashboard() {
             document.getElementById('login-screen').classList.add('hidden');
-            if (currentUser.role === 'manager') {
+            if (currentUser && currentUser.role === 'manager') {
                 document.getElementById('manager-dashboard').classList.remove('hidden');
                 loadManagerReports();
-            } else {
+            } else if (currentUser) {
                 document.getElementById('employee-dashboard').classList.remove('hidden');
                 document.getElementById('emp-name-display').textContent = currentUser.full_name;
             }
