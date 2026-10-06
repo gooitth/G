@@ -1,4 +1,4 @@
-// app.js
+// app.js - نسخة مبسطة ومباشرة لتسجيل الدخول
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const SUPABASE_URL = 'https://etztnzuivagqxjahlyqa.supabase.co';
@@ -52,18 +52,29 @@ document.addEventListener('DOMContentLoaded', () => {
 async function checkAuth() {
     const { data: { session } } = await supabase.auth.getSession();
     if (session) {
-        const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
-        if (profile) {
-            currentUser = profile;
-            if (profile.role === 'manager') {
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('manager-dashboard').classList.remove('hidden');
-                loadManagerData();
-            } else {
-                document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('employee-dashboard').classList.remove('hidden');
-                document.getElementById('emp-name-display').textContent = profile.full_name;
-            }
+        // التحقق المباشر بالبريد المرتبط باليوزر
+        const email = session.user.email;
+        let role = 'employee';
+        let fullName = 'مستخدم النظام';
+        
+        if (email === 'admin@system.local') {
+            role = 'manager';
+            fullName = 'المدير العام';
+        } else if (email === 'jali@system.local') {
+            role = 'employee';
+            fullName = 'جالي';
+        }
+
+        currentUser = { id: session.user.id, role, full_name: fullName };
+
+        if (role === 'manager') {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('manager-dashboard').classList.remove('hidden');
+            loadManagerData();
+        } else {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('employee-dashboard').classList.remove('hidden');
+            document.getElementById('emp-name-display').textContent = fullName;
         }
     }
 }
@@ -75,20 +86,23 @@ async function handleLogin(e) {
     const errorDiv = document.getElementById('login-error');
     errorDiv.classList.add('hidden');
 
-    const { data: profile } = await supabase.from('profiles').select('*').eq('username', username).single();
-    if (!profile) {
-        errorDiv.textContent = 'اسم المستخدم غير موجود';
-        errorDiv.classList.remove('hidden');
-        return;
+    // تحويل اسم المستخدم مباشرة إلى بريد النظام
+    let email = '';
+    if (username === 'admin') {
+        email = 'admin@system.local';
+    } else if (username === 'jali') {
+        email = 'jali@system.local';
+    } else {
+        email = `${username}@system.local`;
     }
 
     const { error } = await supabase.auth.signInWithPassword({
-        email: `${username}@system.local`,
+        email: email,
         password: password
     });
 
     if (error) {
-        errorDiv.textContent = 'كلمة المرور غير صحيحة';
+        errorDiv.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة';
         errorDiv.classList.remove('hidden');
         return;
     }
